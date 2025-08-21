@@ -28,6 +28,7 @@ function formatContext(ctx: FieldContext): string {
     .join(" ");
 }
 
+basekit.addDomainList(["feishu.cn"]);
 basekit.addField({
   // 定义捷径的i18n语言资源
   i18n: {
@@ -111,30 +112,33 @@ basekit.addField({
       // 处理嵌套数组结构
       for (const fieldData of formItemParams.file) {
         const attachments = Array.isArray(fieldData) ? fieldData : [fieldData];
-        
+
         for (const attachment of attachments) {
           if (!attachment) continue;
-          
-          const url = attachment?.tmp_url || attachment?.url || attachment?.link;
+
+          const url =
+            attachment?.tmp_url || attachment?.url || attachment?.link;
           const filename = attachment?.name || "unknown";
-          
+
           if (!url) continue;
 
           try {
             console.log(`${formatContext(context)} 开始处理文件: ${filename}`);
-            
+
             // 下载文件
             const response = await fetch(url);
             if (!response.ok) {
-              exifResults.push(`${filename}: ${t("downloadError")} (${response.status})`);
+              exifResults.push(
+                `${filename}: ${t("downloadError")} (${response.status})`
+              );
               continue;
             }
 
             const buffer = await response.arrayBuffer();
-            
+
             // 提取EXIF数据
             const tags = ExifReader.load(buffer);
-            
+
             if (!tags || Object.keys(tags).length === 0) {
               exifResults.push(`${filename}: ${t("noExifData")}`);
               continue;
@@ -142,33 +146,51 @@ basekit.addField({
 
             // 格式化EXIF信息
             let exifInfo = `文件: ${filename}\n`;
-            
+
             // 获取常见的EXIF标签
             const commonTags = [
-              'DateTime', 'Make', 'Model', 'ExposureTime', 'FNumber', 
-              'ISO', 'Flash', 'FocalLength', 'WhiteBalance', 'ColorSpace',
-              'ExifImageWidth', 'ExifImageHeight', 'Orientation'
+              "DateTime",
+              "Make",
+              "Model",
+              "ExposureTime",
+              "FNumber",
+              "ISO",
+              "Flash",
+              "FocalLength",
+              "WhiteBalance",
+              "ColorSpace",
+              "ExifImageWidth",
+              "ExifImageHeight",
+              "Orientation",
             ];
-            
+
             for (const tagName of commonTags) {
               if (tags[tagName]) {
-                const value = tags[tagName].description || tags[tagName].value || tags[tagName];
+                const value =
+                  tags[tagName].description ||
+                  tags[tagName].value ||
+                  tags[tagName];
                 exifInfo += `${tagName}: ${value}\n`;
               }
             }
 
             // 添加GPS信息（如果存在）
             if (tags.GPSLatitude && tags.GPSLongitude) {
-              const lat = tags.GPSLatitude.description || tags.GPSLatitude.value;
-              const lon = tags.GPSLongitude.description || tags.GPSLongitude.value;
+              const lat =
+                tags.GPSLatitude.description || tags.GPSLatitude.value;
+              const lon =
+                tags.GPSLongitude.description || tags.GPSLongitude.value;
               exifInfo += `GPS: ${lat}, ${lon}\n`;
             }
 
             exifResults.push(exifInfo.trim());
-            
           } catch (fileError) {
-            console.error(`${formatContext(context)} 处理文件 ${filename} 时出错:`, fileError);
-            const errMsg = fileError instanceof Error ? fileError.message : "未知错误";
+            console.error(
+              `${formatContext(context)} 处理文件 ${filename} 时出错:`,
+              fileError
+            );
+            const errMsg =
+              fileError instanceof Error ? fileError.message : "未知错误";
             exifResults.push(`${filename}: ${t("parseFailed")} - ${errMsg}`);
           }
         }
@@ -184,7 +206,7 @@ basekit.addField({
 
       return {
         code: FieldCode.Success,
-        data: exifResults.join('\n\n'),
+        data: exifResults.join("\n\n"),
         msg: t("parseSuccess"),
       };
     } catch (error) {
